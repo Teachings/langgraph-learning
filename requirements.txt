@@ -1,0 +1,9 @@
+langgraph
+httpx
+ipython
+graphviz
+langchain
+langchain_openai
+langchain_experimental
+termcolor
+rich
