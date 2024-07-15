@@ -118,7 +118,11 @@ def agent(state: AgentState):
     
     #append the response to the agent_response list in the state
     if last_ai_message is not None:
-        state["agent_response"] = last_ai_message     
+        state["agent_response"] = last_ai_message 
+        if last_ai_message.content is not None and last_ai_message.content != "" :
+            state["tool_response"]=last_ai_message.content
+    # print("STATE at agent end:", state)
+    # input()    
     return state
    
     
@@ -140,16 +144,21 @@ def call_tool(state: AgentState):
     # print("STATE:", state)
     agent_response = state["agent_response"]
     
-    tool_call = agent_response.tool_calls[0]
-    tool = tool_mapping[tool_call["name"].lower()]
-    tool_output = tool.invoke(tool_call["args"])
-    state["api_call_count"] += 1
-    print("Tool output:", tool_output)
-    tool_message = ToolMessage(content=tool_output, tool_call_id=tool_call["id"])
-    if tool_output is not None:
-        state["tool_response"] = tool_output
-        # print("STATE:", state)
-        # input()
+    if hasattr(agent_response, 'tool_calls') and len(agent_response.tool_calls) > 0:
+        tool_call = agent_response.tool_calls[0]
+        tool = tool_mapping[tool_call["name"].lower()]
+        try:
+            tool_output = tool.invoke(tool_call["args"])
+            state["api_call_count"] += 1
+            print("Tool output:", tool_output)
+            if tool_output is not None:
+                state["tool_response"] = tool_output
+        except Exception as e:
+            print(f"Error invoking tool: {e}")
+            # Handle the error or log it as needed
+    else:
+        print("No tool calls found in agent response.")
+    
     return state
 
 workflow = StateGraph(AgentState)
@@ -180,7 +189,9 @@ def save_graph_to_file(runnable_graph, output_file_path):
 save_graph_to_file(app, "output-05.png")
 
 
-research_question = "How is the weather in munich today?"
+research_question = "Tell me a joke?"
+# research_question = "How is the weather in Woodbury MN today?"
+
 
 
 state : AgentState = {"research_question": research_question,
@@ -189,4 +200,4 @@ state : AgentState = {"research_question": research_question,
                       "api_call_count": 0}
 result = app.invoke(state)
 print(result["tool_response"])
-print(result["api_call_count"])
+print(result)
