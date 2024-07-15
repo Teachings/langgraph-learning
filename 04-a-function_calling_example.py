@@ -1,5 +1,5 @@
 import random
-from langchain_core.messages import HumanMessage, ToolMessage
+from langchain_core.messages import HumanMessage, ToolMessage, AIMessage
 from langgraph.graph import END, MessageGraph
 from langchain_openai import ChatOpenAI
 from langchain_core.runnables import RunnableConfig
@@ -14,7 +14,7 @@ from langchain_core.pydantic_v1 import BaseModel, Field
 # using OllamaFunctions from experimental because it supports function binding with llms
 model = OllamaFunctions(
     base_url="http://ai.mtcl.lan:11434",
-    model="mistral", #dolphin-llama3:70b
+    model="gemma2:27b-instruct-q8_0", #dolphin-llama3:70b
     format="json"
     )
 
@@ -80,3 +80,18 @@ for tool_call in llm_response.tool_calls:
     messages.append(ToolMessage(content=tool_output, tool_call_id=tool_call["id"]))
 
 print(messages)
+
+# Extract the last AI message from messages
+last_ai_message = None
+for msg in reversed(messages):
+    if isinstance(msg, HumanMessage):
+        continue
+    elif isinstance(msg, AIMessage):
+        last_ai_message = msg
+        break
+
+print("Last AI Message:", last_ai_message)
+if last_ai_message and hasattr(last_ai_message, 'tool_calls'):
+    print("Tool Calls:", last_ai_message.tool_calls)
+else:
+    print("No tool calls found.")

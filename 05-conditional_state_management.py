@@ -1,5 +1,6 @@
 import random
-from langchain_core.messages import HumanMessage, ToolMessage, SystemMessage
+from langchain_core.messages import HumanMessage, ToolMessage, SystemMessage, AIMessage
+from langgraph.graph.message import add_messages
 from langgraph.graph import END, StateGraph
 from langchain_openai import ChatOpenAI
 from langchain_core.runnables import RunnableConfig
@@ -10,11 +11,15 @@ from langchain_core.tools import tool
 from langchain_experimental.llms.ollama_functions import OllamaFunctions
 from langchain_core.pydantic_v1 import BaseModel, Field
 
+from langchain.prompts import PromptTemplate
+from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
+from langchain.output_parsers import ResponseSchema, StructuredOutputParser
+
 
 # using OllamaFunctions from experimental because it supports function binding with llms
 model = OllamaFunctions(
     base_url="http://ai.mtcl.lan:11434",
-    model="mixtral", #dolphin-llama3:70b
+    model="gemma2:27b-instruct-q8_0", #dolphin-llama3:70b
     format="json"
     )
 
@@ -52,44 +57,104 @@ tool_mapping = {
     'get_system_time': get_system_time,
 }
 
+# Define Agent prompt
+prompt = PromptTemplate(
+    template="""system
+    You are a smart Agent. You are a master at understanding what a customer wants and utilize available tools only if you have to.
+
+    user
+    Conduct a comprehensive analysis of the request provided\
+
+    USER REQUEST:\n\n {initial_request} \n\n
+    
+    assistant
+    """,
+    input_variables=["initial_request"],
+)
+
+agent_request_generator = prompt | model_with_tools
+# result = agent_request_generator.invoke({"initial_request": "What is the weather in woodbury in MN?"})
+
+# Define should continue prompt
+category_generator_prompt = PromptTemplate(
+    template="""system
+    You are a Smart Router Agent. You are a master at reviewing whether the original question that customer asked was answered in the tool response.
+
+     user
+    Conduct a comprehensive analysis of the Initial Request from user and Tool Response and route the request into one of the following categories:
+        continue - used when INITIAL REQUEST is not answered by TOOL RESPONSE or when TOOL RESPONSE is empty \
+        end - used when INITIAL REQUEST is somewhat answered by TOOL RESPONSE \
+        
+
+            Output a single cetgory only from the types ('continue', 'end') \
+            eg:
+            'continue' \
+
+    INITIAL REQUEST:\n\n {research_question} \n\n
+    TOOL RESPONSE:\n\n {tool_response} \n\n
+    
+    assistant
+    """,
+    input_variables=["research_question", "tool_response"],
+)
+
+category_generator = category_generator_prompt | model | StrOutputParser()
+# result = category_generator.invoke({"research_question": "What is the weather in woodbury in MN?", "tool_response":"65C, Sunny"})
+# print(result)
+# input("...")
+
+
 class AgentState(TypedDict):
-    messages: Annotated[Sequence[BaseMessage], operator.add]
+    research_question: str
+    tool_response: str
+    agent_response: AIMessage
     api_call_count: int = 0
+
+  
+def agent(state: AgentState):
+    # print("STATE at agent start:", state)
+    # input()
+    last_ai_message = agent_request_generator.invoke({"initial_request": state["research_question"]})
+    
+    #append the response to the agent_response list in the state
+    if last_ai_message is not None:
+        state["agent_response"] = last_ai_message     
+    return state
+   
     
 def should_continue(state: AgentState):
-    print("STATE:", state)
-    messages = state["messages"]
-    last_message = messages[-1]
-    if not last_message.tool_calls:
-        return "end"
-    else:
-        input()
+    # print("STATE:", state)
+    # input()
+    result = category_generator.invoke({"research_question": state["research_question"], "tool_response":state["tool_response"]})
+
+    if isinstance(result, str) and result == "continue":
+        print("Return continue")
         return "continue"
+    else:
+        print("Return end")
+        return "end"
 
-
-def call_model(state: AgentState):
-    print("STATE:", state)
-    messages = state["messages"]
-    response = model_with_tools.invoke(messages)
-    return {"messages": [response], "api_call_count": state["api_call_count"]}
 
 
 def call_tool(state: AgentState):
-    print("STATE:", state)
-    messages = state["messages"]
-    last_message = messages[-1]
-    tool_call = last_message.tool_calls[0]
+    # print("STATE:", state)
+    agent_response = state["agent_response"]
+    
+    tool_call = agent_response.tool_calls[0]
     tool = tool_mapping[tool_call["name"].lower()]
     tool_output = tool.invoke(tool_call["args"])
     state["api_call_count"] += 1
     print("Tool output:", tool_output)
-    print("API call count after this tool call:", state["api_call_count"])
     tool_message = ToolMessage(content=tool_output, tool_call_id=tool_call["id"])
-    return {"messages": [tool_message], "api_call_count": state["api_call_count"]}
+    if tool_output is not None:
+        state["tool_response"] = tool_output
+        # print("STATE:", state)
+        # input()
+    return state
 
 workflow = StateGraph(AgentState)
 
-workflow.add_node("agent", call_model)
+workflow.add_node("agent", agent)
 workflow.add_node("action", call_tool)
 
 workflow.set_entry_point("agent")
@@ -103,7 +168,6 @@ workflow.add_conditional_edges(
     },
 )
 workflow.add_edge("action", "agent")
-workflow.set_entry_point("agent")
 
 app = workflow.compile()
 
@@ -115,14 +179,14 @@ def save_graph_to_file(runnable_graph, output_file_path):
 
 save_graph_to_file(app, "output-05.png")
 
-system_message = SystemMessage(
-    content="You are responsible for answering user questions. You use tools for that."
-)
 
-human_message = HumanMessage(content="How is the weather in munich today?")
-messages = [system_message, human_message]
+research_question = "How is the weather in munich today?"
 
-result = app.invoke({"messages": messages, "api_call_count": 0})
 
-print(result["messages"][-1].content)
+state : AgentState = {"research_question": research_question,
+                      "tool_response": [] ,
+                      "agent_response": [],
+                      "api_call_count": 0}
+result = app.invoke(state)
+print(result["tool_response"])
 print(result["api_call_count"])
