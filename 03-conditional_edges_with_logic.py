@@ -2,9 +2,12 @@ from langchain_core.messages import HumanMessage
 from langgraph.graph import END, MessageGraph
 from langchain_openai import ChatOpenAI
 from langchain_core.runnables import RunnableConfig
+from langchain_ollama.llms import OllamaLLM
 
-# chatmodel = ChatOpenAI(base_url="http://ai.mtcl.lan:11434/v1", api_key="fake-api-key", model="phi3")
-chatmodel = ChatOpenAI(base_url="http://ai.mtcl.lan:8000/v1", api_key="fake-api-key", model="phi3")
+
+chatmodel = ChatOpenAI(base_url="http://ai.mtcl.lan:11436/v1", api_key="fake-api-key", model="llama3.1")
+# chatmodel = ChatOpenAI(base_url="http://ai.mtcl.lan:8000/v1", api_key="fake-api-key", model="phi3")
+# chatmodel = OllamaLLM(base_url="http://ai.mtcl.lan:11436", model="llama3.1")
 
 # Create the MessageGraph
 graph = MessageGraph()

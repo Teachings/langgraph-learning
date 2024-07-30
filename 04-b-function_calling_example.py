@@ -16,8 +16,8 @@ from langchain.output_parsers import ResponseSchema, StructuredOutputParser
 
 # using OllamaFunctions from experimental because it supports function binding with llms
 model = OllamaFunctions(
-    base_url="http://ai.mtcl.lan:11434",
-    model="gemma2:27b-instruct-q8_0", #dolphin-llama3:70b #gemma2:27b-instruct-q8_0 #qwen2:72b
+    base_url="http://ai.mtcl.lan:11436",
+    model="gemma2:27b", #dolphin-llama3:70b #gemma2:27b-instruct-q8_0 #qwen2:72b
     format="json"
     )
 
@@ -116,8 +116,3 @@ if last_ai_message and hasattr(last_ai_message, 'tool_calls'):
     print("tool args :: ", last_ai_message.tool_calls[-1]["args"])
 else:
     print("No tool calls found.")
-
-
-
-
-

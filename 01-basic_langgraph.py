@@ -1,7 +1,7 @@
 from langchain_core.messages import HumanMessage
 from langgraph.graph import END, MessageGraph
 
-def add_one(input: list[HumanMessage]):
+def add_text(input: list[HumanMessage]):
     input[0].content += " Amazing_"
     return input
 
@@ -14,10 +14,10 @@ node3_id = "node3"
 node4_id = "node4"
 
 # Adding nodes with their respective functions
-graph.add_node(node1_id, add_one)
-graph.add_node(node2_id, add_one)
-graph.add_node(node3_id, add_one)
-graph.add_node(node4_id, add_one)
+graph.add_node(node1_id, add_text)
+graph.add_node(node2_id, add_text)
+graph.add_node(node3_id, add_text)
+graph.add_node(node4_id, add_text)
 
 # Adding edges between nodes
 graph.add_edge(node1_id, node2_id)

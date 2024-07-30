@@ -13,8 +13,8 @@ from langchain_core.pydantic_v1 import BaseModel, Field
 
 # using OllamaFunctions from experimental because it supports function binding with llms
 model = OllamaFunctions(
-    base_url="http://ai.mtcl.lan:11434",
-    model="gemma2:27b-instruct-q8_0", #dolphin-llama3:70b
+    base_url="http://ai.mtcl.lan:11436",
+    model="gemma2:27b", #dolphin-llama3:70b
     format="json"
     )
 
