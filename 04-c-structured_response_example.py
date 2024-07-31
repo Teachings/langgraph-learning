@@ -3,10 +3,12 @@ from langchain_core.pydantic_v1 import BaseModel, Field
 from langchain_experimental.llms.ollama_functions import OllamaFunctions
 
 # Chain
-model = OllamaFunctions(base_url="http://ai:11436",
+model = OllamaFunctions(
+    base_url="http://ai:11436",
     model="llama3.1:70b", 
-                      format="json", 
-                      temperature=0)
+    format="json", 
+    temperature=0
+    )
 # Pydantic Schema for structured response
 class Evaluation(BaseModel):
     result: bool = Field(description="True or False", required=True)

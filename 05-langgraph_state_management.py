@@ -1,12 +1,7 @@
 import random
-from langchain_core.messages import HumanMessage, ToolMessage, SystemMessage, AIMessage
-from langgraph.graph.message import add_messages
+from langchain_core.messages import AIMessage
 from langgraph.graph import END, StateGraph
-from langchain_openai import ChatOpenAI
-from langchain_core.runnables import RunnableConfig
-from typing import Any, Callable, Dict, Type, TypedDict, Annotated, Sequence, Union
-from langchain_core.messages import BaseMessage
-import operator
+from typing import TypedDict
 from langchain_core.tools import tool
 from langchain_experimental.llms.ollama_functions import OllamaFunctions
 from langchain_core.pydantic_v1 import BaseModel, Field

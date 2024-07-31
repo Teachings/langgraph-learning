@@ -1,9 +1,4 @@
-import random
-from langchain_core.messages import HumanMessage, AIMessage
-from langgraph.graph import END
-from typing import Any, Dict, Type, TypedDict, Annotated, Sequence
-from langchain_core.messages import BaseMessage
-import operator
+from langchain_core.messages import AIMessage
 from langchain_core.tools import tool
 from langchain_experimental.llms.ollama_functions import OllamaFunctions
 from langchain.prompts import PromptTemplate
@@ -14,7 +9,7 @@ from tools import get_current_weather, get_system_time
 # using OllamaFunctions from experimental because it supports function binding with llms
 model = OllamaFunctions(
     base_url="http://ai.mtcl.lan:11436",
-    model="llama3.1:70b", #dolphin-llama3:70b #gemma2:27b-instruct-q8_0 #qwen2:72b
+    model="llama3.1:70b",
     format="json"
     )
 
@@ -32,18 +27,22 @@ tool_mapping = {
 # messages.append(llm_response)
 
 
-# Define prompt
+# Define prompt template
+
 prompt = PromptTemplate(
-    template="""system
-    You are a smart Agent. 
-    You are a master at understanding what a customer wants and utilize available tools only if you have to.
+    template=
+    """
+    <|begin_of_text|>
+    <|start_header_id|>system<|end_header_id|>
+        You are a smart Agent. 
+        You are a master at understanding what a customer wants and utilize available tools only if you have to.
+    <|eot_id|>
+    <|start_header_id|>user<|end_header_id|>
+        Conduct a comprehensive analysis of the request provided. \n
+        USER REQUEST:\n\n {initial_request} \n\n
 
-    user
-    Conduct a comprehensive analysis of the request provided\
-
-    USER REQUEST:\n\n {initial_request} \n\n
-    
-    assistant
+    <|eot_id|>
+    <|start_header_id|>assistant<|end_header_id|>
     """,
     input_variables=["initial_request"],
 )

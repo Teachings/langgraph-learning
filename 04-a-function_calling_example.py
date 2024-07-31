@@ -1,7 +1,5 @@
 import random
 from langchain_core.messages import AIMessage
-from langgraph.graph import END
-from typing import Any, Dict
 from langchain_core.tools import tool
 from langchain_experimental.llms.ollama_functions import OllamaFunctions
 from langchain.prompts import PromptTemplate
@@ -9,7 +7,7 @@ from langchain.prompts import PromptTemplate
 # using OllamaFunctions from experimental because it supports function binding with llms
 model = OllamaFunctions(
     base_url="http://ai.mtcl.lan:11436",
-    model="llama3.1:70b", #dolphin-llama3:70b #gemma2:27b-instruct-q8_0 #qwen2:72b
+    model="llama3.1:70b",
     format="json"
     )
 
