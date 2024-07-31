@@ -5,11 +5,9 @@ from typing import TypedDict
 from langchain_core.tools import tool
 from langchain_experimental.llms.ollama_functions import OllamaFunctions
 from langchain_core.pydantic_v1 import BaseModel, Field
-
 from langchain.prompts import PromptTemplate
-from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
-from langchain.output_parsers import ResponseSchema, StructuredOutputParser
-
+# Import tools from tools.py
+from tools import get_current_weather, get_system_time
 
 # using OllamaFunctions from experimental because it supports function binding with llms
 model = OllamaFunctions(
@@ -17,48 +15,6 @@ model = OllamaFunctions(
     model="llama3.1:70b", #llama3.1:70b gemma2:27b-instruct-q8_0
     format="json"
     )
-
-@tool
-def get_current_weather(location: str) -> str:
-    """Get the current weather in a specified location.
-    
-    This tool simulates checking the weather by randomly selecting from three possible outcomes: sunny, cold, or rainy. 
-    The chance of each outcome is equal (1/3). If the random check fails, it may return an unexpected result to simulate real-world unpredictable conditions.
-    
-    Args:
-        location (str): The name of the location for which to check the weather.
-        
-    Returns:
-        str: A string describing the current weather in the specified location, randomly chosen from three possible outcomes.
-    """
-    # start a random check for 1/3 of times to simulate a failure
-    if random.randint(0, 2) == 0 :
-        return "Sunny, 78F"
-    elif random.randint(0, 2) == 1:
-        return "Cold, 22F"
-    else:
-        return "Rainy, 60F"
-
-@tool
-def get_system_time(location: str = "Minnesota") -> str:
-    """Get the current system time. If no location is provided, use default location as 'Woodbury, Minnesota'.
-    
-    This tool simulates retrieving the system time by randomly selecting from three possible outcomes: morning, afternoon, or evening. 
-    The chance of each outcome is equal (1/3). If the random check fails, it may return an unexpected result to simulate real-world unpredictable conditions.
-    
-    Args:
-        location (str): Optional. The name of the location for which to retrieve the system time. It defaults to Minnesota if not provided.  
-        
-    Returns:
-        str: A string describing the current system time in the specified or default location, randomly chosen from three possible outcomes.
-    """
-    # start a random check for 1/3 of times to simulate a failure
-    if random.randint(0, 2) == 0 :
-        return "2:00 AM"
-    elif random.randint(0, 2) == 1:
-        return "3:00 PM"
-    else:
-        return "6:15 PM"
 
 model_with_tools = model.bind_tools(
     tools=[get_current_weather, get_system_time],
@@ -138,14 +94,15 @@ class AgentState(TypedDict):
     research_question: str
     tool_response: str
     agent_response: AIMessage
-    api_call_count: int = 0
+    agent_call_count: int = 0
+    tool_call_count: int = 0
 
   
 def agent(state: AgentState):
     print("STATE at agent start:", state)
     input("Paused at STATE at agent start")
     last_ai_message = agent_request_generator.invoke({"initial_request": state["research_question"]})
-    
+    state["agent_call_count"] += 1
     #append the response to the agent_response list in the state
     if last_ai_message is not None:
         state["agent_response"] = last_ai_message 
@@ -159,11 +116,12 @@ def agent(state: AgentState):
 def should_continue(state: AgentState):
     print("STATE:", state)
     input("Paused at Should Continue Start")
+    print("Evaluating whether the Question is Answered by the tool response or not... Please wait...")
     result = category_generator.invoke({"research_question": state["research_question"],
                                          "tool_response":state["tool_response"]
                                         })
     if isinstance(result, Evaluation):
-        print("Evaluation result:", result.result)  # Access the 'result' attribute from Evaluation
+        print("Is tool response good and should the flow go to END node? ", result.result)  # Access the 'result' attribute from Evaluation
         input("Paused at Should Continue Mid")
         
         if result.result:  # If result is True
@@ -186,7 +144,7 @@ def call_tool(state: AgentState):
         tool = tool_mapping[tool_call["name"].lower()]
         try:
             tool_output = tool.invoke(tool_call["args"])
-            state["api_call_count"] += 1
+            state["tool_call_count"] += 1
             print("Tool output:", tool_output)
             if tool_output is not None:
                 state["tool_response"] = tool_output
@@ -237,7 +195,9 @@ research_question = "How is the weather in Woodbury MN today?"
 state : AgentState = {"research_question": research_question,
                       "tool_response": [] ,
                       "agent_response": [],
-                      "api_call_count": 0}
+                      "agent_call_count": 0,
+                      "tool_call_count": 0
+                      }
 result = app.invoke(state)
 print(result["tool_response"])
 print(result)
