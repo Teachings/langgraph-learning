@@ -52,12 +52,6 @@ tool_mapping = {
     'get_system_time': get_system_time,
 }
 
-class AgentState(TypedDict):
-    messages: Annotated[Sequence[BaseMessage], operator.add]
-    api_call_count: int = 0
-    
-
-
 # messages = [HumanMessage("What is the time right now?")]
 # llm_response = model_with_tools.invoke(messages)
 # messages.append(llm_response)

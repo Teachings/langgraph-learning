@@ -64,4 +64,4 @@ def save_graph_to_file(runnable_graph, output_file_path):
 save_graph_to_file(runnable_graph, "output-02.png")
 
 #run the graph with input ai or human
-print(runnable_graph.invoke("ai"))
+print(runnable_graph.invoke("human"))

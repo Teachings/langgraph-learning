@@ -46,7 +46,9 @@ category_generator = category_generator_prompt | structured_llm
 #     "tool_response": "4"
 #     })
 
-result = category_generator.invoke({"research_question": "What is the weather in woodbury in MN?", "tool_response":"65F"})
+result = category_generator.invoke({
+    "research_question": "What is the weather in woodbury in MN?",
+    "tool_response":"65F, Sunny"})
 
 
 print(result.result)
