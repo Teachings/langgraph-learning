@@ -29,7 +29,7 @@ category_generator_prompt = PromptTemplate(
 
             Output either True or False \
             eg:
-            'True' \ \n\n
+            'True' \n\n
     INITIAL REQUEST:\n\n {research_question} \n\n
     TOOL RESPONSE:\n\n {tool_response} \n\n
 

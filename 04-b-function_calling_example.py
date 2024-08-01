@@ -22,13 +22,7 @@ tool_mapping = {
     'get_system_time': get_system_time,
 }
 
-# messages = [HumanMessage("What is the weather in Chicago IL?")]
-# llm_response = model_with_tools.invoke(messages)
-# messages.append(llm_response)
-
-
 # Define prompt template
-
 prompt = PromptTemplate(
     template=
     """
