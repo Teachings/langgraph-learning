@@ -65,7 +65,7 @@ specific_requests = [
 
 # Generate test sentences
 test_sentences = []
-test_suite_size = 10
+test_suite_size = 25
 for _ in range(test_suite_size):
     city_and_state = random.choice(cities_and_states)
     specific_request = random.choice(specific_requests).replace("[location]", city_and_state)

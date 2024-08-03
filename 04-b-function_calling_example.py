@@ -9,7 +9,7 @@ from tools import get_current_weather, get_system_time
 # using OllamaFunctions from experimental because it supports function binding with llms
 model = OllamaFunctions(
     base_url="http://ai.mtcl.lan:11436",
-    model="llama3.1:70b",
+    model="llama3.1:70b", #llama3-groq-tool-use:70b llama3.1:70b
     format="json"
     )
 

@@ -8,3 +8,5 @@ langchain_experimental
 langchain-ollama
 termcolor
 rich
+ollama
+openai
