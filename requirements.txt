@@ -10,3 +10,4 @@ termcolor
 rich
 ollama
 openai
+docker
