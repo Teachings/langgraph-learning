@@ -1,1 +1,54 @@
-__pycache__/*
+# Compiled python file
+*.pyc
+
+# C extensions
+*.so
+
+# Byte-compiled / optimized / DLL files
+__pycache__
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.env
+.venv
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+
+# PyCharm
+*.iml
+.idea
+.vscode
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder IDE
+.spyproject
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Pytest
+__pycache__
+*.py[cod]
+*$PYTEST_CURRENT_TEST*
+
+# Python Unit Tests
+*.pyc
+*pytest_cache/
+*.rej
