@@ -15,18 +15,25 @@ from utils import pretty_print_state_enhanced
 # Import the prompt templates from the new file
 from prompts import preprocessor_prompt_template, code_generation_prompt_template, code_review_prompt_template
 
+from langchain_ollama import ChatOllama
 
 # Define model
-model = OllamaFunctions(
+model = ChatOllama(
     base_url="http://localhost:11434",
-    model="llama3.1:70b",
+    model="llama3.2"
+)
+
+# Define model
+model_json = ChatOllama(
+    base_url="http://localhost:11434",
+    model="llama3.2",
     format="json"
 )
 
 # Initialize models for preprocessor, code generation, and code review agents
 preprocessor_model = model
 code_generator_model = model
-code_review_model = model.with_structured_output(CodeReviewResult)
+code_review_model = model_json.with_structured_output(CodeReviewResult)
 
 # Initialize chains for preprocessor, code generation, and code review agents
 preprocessor_agent_generator = preprocessor_prompt_template | preprocessor_model
@@ -44,13 +51,30 @@ def agent_preprocessor(state: AgentState):
 
 def agent_code_generation(state: AgentState):
     print(colored("DEBUG: Generating Python Code...", "blue"))
+    
+    # Check and reset the state at the beginning of the method if needed
+    if (state["generated_code_result"] == "regenerate" or 
+        state["code_review_result"] == "regenerate"):
+        print(colored("DEBUG: Resetting agent state due to regenerate flag...", "yellow"))
+        reset_keys = [
+            "generated_code_result", 
+            "extracted_python_code", 
+            "code_review_result", 
+            "final_output"
+        ]
+        for key in reset_keys:
+            state[key] = ""
+    else:
+        print(colored("DEBUG: Initial Generation of code. No need to reset agent state.", "green"))
+    
+    # Continue with the rest of your code generation logic...
     result = agent_code_generator.invoke({"task": state["preprocessor_agent_result"]})
     print(colored(f"DEBUG: Code Generation Result: {result.content}", "blue"))
     state["generated_code_result"] = result.content
+    
+    # Continue with the rest of your code generation logic...
     print(colored("DEBUG: agent_code_generation state", "magenta"))
     pretty_print_state_enhanced(state)
-
-
     return state
 
 def agent_extract_code(state: AgentState):
@@ -67,28 +91,33 @@ def agent_extract_code(state: AgentState):
     if code_block:
         extracted_code = code_block.group(1).strip()
         state["extracted_python_code"] = extracted_code
-        print(colored(f"DEBUG: Extracted Python Code from triple backticks: {state['extracted_python_code']}", "green"))
+        # print(colored(f"DEBUG: Extracted Python Code from triple backticks: {state['extracted_python_code']}", "green"))
+        print(colored("DEBUG: Extracted Python Code from triple backticks", "green"))
         state["code_extraction_status"] = "continue"
     
     # 2. If that fails, try to extract from triple backticks with 'python'
     elif code_block_with_lang:
         extracted_code = code_block_with_lang.group(1).strip()
         state["extracted_python_code"] = extracted_code
-        print(colored(f"DEBUG: Extracted Python Code from triple backticks with 'python': {state['extracted_python_code']}", "green"))
+        # print(colored(f"DEBUG: Extracted Python Code from triple backticks with 'python': {state['extracted_python_code']}", "green"))
+        print(colored("DEBUG: Extracted Python Code from triple backticks with 'python'", "green"))
+    
         state["code_extraction_status"] = "continue"
     
     # 3. If that fails, try to extract from single backticks
     elif single_backtick_code:
         extracted_code = single_backtick_code.group(1).strip()
         state["extracted_python_code"] = extracted_code
-        print(colored(f"DEBUG: Extracted Python Code from single backticks: {state['extracted_python_code']}", "green"))
+        # print(colored(f"DEBUG: Extracted Python Code from single backticks: {state['extracted_python_code']}", "green"))
+        print(colored("DEBUG: Extracted Python Code from single backtick", "green"))
         state["code_extraction_status"] = "continue"
     
     # 4. Fallback: Assume the entire result is the code if no backticks are found
     elif code_result:
         print(colored("DEBUG: No backticks found. Assuming entire result is the code.", "yellow"))
         state["extracted_python_code"] = code_result.strip()
-        print(colored(f"DEBUG: Fallback Extracted Python Code: {state['extracted_python_code']}", "yellow"))
+        # print(colored(f"DEBUG: Fallback Extracted Python Code: {state['extracted_python_code']}", "yellow"))
+        print(colored("DEBUG: Fallback Extraction", "green"))
         state["code_extraction_status"] = "continue"
     else:
         state["code_extraction_status"] = "regenerate"  # Extraction failed, regenerate
@@ -115,8 +144,8 @@ def agent_code_review(state: AgentState):
         # Print and store in agent state
         # print(colored("Reviewed Code:", "yellow"))
         if isinstance(code_review_result, CodeReviewResult):
-            print(f"Result: {code_review_result.result}")
-            print(f"Message: {code_review_result.message}")
+            # print(f"Result: {code_review_result.result}")
+            # print(f"Message: {code_review_result.message}")
             state["code_review_result"] = code_review_result
         else:
             print("Unexpected response format from code review agent.")
