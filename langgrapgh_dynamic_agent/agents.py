@@ -1,13 +1,10 @@
-from langgraph.graph import StateGraph, END
-from typing import TypedDict
-from langchain_experimental.llms.ollama_functions import OllamaFunctions
 from termcolor import colored
 import re
 import docker
 import tempfile
 import os
-from pydantic import BaseModel, Field, ValidationError
-
+from pydantic import ValidationError
+from langchain_ollama import ChatOllama
 from models import CodeReviewResult, AgentState
 from utils import pretty_print_state_enhanced
 
@@ -15,12 +12,10 @@ from utils import pretty_print_state_enhanced
 # Import the prompt templates from the new file
 from prompts import preprocessor_prompt_template, code_generation_prompt_template, code_review_prompt_template
 
-from langchain_ollama import ChatOllama
-
 # Define model
 model = ChatOllama(
     base_url="http://localhost:11434",
-    model="llama3.2"
+    model="llama3.2" #deepseek-coder-v2 nemotron qwen2.5-coder:32b llama3.2
 )
 
 # Define model
@@ -43,7 +38,7 @@ code_review_agent_generator = code_review_prompt_template | code_review_model
 def agent_preprocessor(state: AgentState):
     print(colored("DEBUG: Preprocessing User Request...", "magenta"))
     result = preprocessor_agent_generator.invoke({"user_request": state["initial_request"]})
-    print(colored(f"DEBUG: Preprocessor Result: {result.content}", "magenta"))
+    # print(colored(f"DEBUG: Preprocessor Result: {result.content}", "magenta"))
     state["preprocessor_agent_result"] = result.content
     print(colored("DEBUG: agent_preprocessor state", "magenta"))
     pretty_print_state_enhanced(state)
@@ -69,7 +64,7 @@ def agent_code_generation(state: AgentState):
     
     # Continue with the rest of your code generation logic...
     result = agent_code_generator.invoke({"task": state["preprocessor_agent_result"]})
-    print(colored(f"DEBUG: Code Generation Result: {result.content}", "blue"))
+    # print(colored(f"DEBUG: Code Generation Result: {result.content}", "blue"))
     state["generated_code_result"] = result.content
     
     # Continue with the rest of your code generation logic...
@@ -78,7 +73,7 @@ def agent_code_generation(state: AgentState):
     return state
 
 def agent_extract_code(state: AgentState):
-    # print(colored("DEBUG: Extracting Python Code...", "green"))
+    print(colored("DEBUG: Extracting Python Code...", "magenta"))
     # print(colored(f"DEBUG: Generated Code Result: {state['generated_code_result']}", "green"))
 
     code_result = state["generated_code_result"]
@@ -135,7 +130,7 @@ def conditional_should_continue_after_extraction(state: AgentState):
         return "regenerate"
 
 def agent_code_review(state: AgentState):
-    print(colored("DEBUG: Reviewing Python Code...", "yellow"))
+    print(colored("DEBUG: Reviewing Python Code...", "magenta"))
     
     code_review_result = code_review_agent_generator.invoke({"generated_code": state["extracted_python_code"], "initial_request": state["preprocessor_agent_result"]})
 
@@ -178,7 +173,7 @@ def conditional_should_continue_after_code_review(state: AgentState):
         return "regenerate"
 
 def agent_execute_code_in_docker(state: AgentState):
-    print(colored("DEBUG: Running code in Docker...", "cyan"))
+    print(colored("DEBUG: Running code in Docker...", "magenta"))
     # print(colored(f"DEBUG: Final Python Code to run: {state['extracted_python_code']}", "cyan"))
 
     with tempfile.NamedTemporaryFile(suffix=".py", delete=False) as temp_code_file:
@@ -205,6 +200,5 @@ def agent_execute_code_in_docker(state: AgentState):
 
     print(colored("DEBUG: agent_execute_code_in_docker state", "magenta"))
     pretty_print_state_enhanced(state)
-
 
     return state

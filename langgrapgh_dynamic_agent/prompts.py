@@ -15,23 +15,22 @@ preprocessor_prompt_template = PromptTemplate(
     Few-shot examples:
 
     Example 1:
-    USER REQUEST: "What is the system time?"
-    OUTPUT: Generate Python code to get the current system time using the time library.
-
-    Example 2:
-    USER REQUEST: "How can I calculate the square root of a number?"
-    OUTPUT: Generate Python code to calculate the square root of a number using the math library.
-
-    Example 3:
-    USER REQUEST: "Can I check if a number is prime?"
-    OUTPUT: Generate Python code to check if a number is prime.
-
-    Example 4:
-    USER REQUEST: "How do I make a list of even numbers from 1 to 100?"
-    OUTPUT: Generate Python code to create a list of even numbers from 1 to 100.
+    USER REQUEST: Calculate the factorial of 10.
+    OUTPUT: 
+    Generate Python code to:
+    - **Functionality**: Calculate the Factorial of a Given Number
+    - **Input**:
+        * Number: `10` (integer)
+    - **Operation**: Compute the factorial of the input number
+    - **Library/Module**: Utilize the `math` library (if applicable) or implement a custom factorial function
+    - **Output**:
+        * Data Type: Integer
+        * Format: Return the calculated factorial value
+    - **Specific Requirement**: Ensure the code handles potential overflow/errors for large input values (if applicable)
 
     Now, based on the user's request, generate a clear and structured task for the Python code generator.
     USER REQUEST: {user_request}
+    OUTPUT:
     """,
     input_variables=["user_request"],
 )
@@ -53,26 +52,43 @@ code_generation_prompt_template = PromptTemplate(
     Few-shot examples:
 
     Example 1:
-    Task: Generate Python code to get the current system time using the time library.
-    ```
-    import time
-    def get_current_time():
-        return time.ctime()
-    print(get_current_time())
-    ```
+    Task:
+        Generate Python code to:
+    - **Functionality**: Calculate the Factorial of a Given Number
+    - **Input**:
+        * Number: `10` (integer)
+    - **Operation**: Compute the factorial of the input number
+    - **Library/Module**: Utilize the `math` library (if applicable) or implement a custom factorial function
+    - **Output**:
+        * Data Type: Integer
+        * Format: Return the calculated factorial value
+    - **Specific Requirement**: Ensure the code handles potential overflow/errors for large input values (if applicable)
 
-    Example 2:
-    Task: Generate Python code to calculate the square root of a number.
+    OUTPUT:
     ```
     import math
-    def sqrt_number(num):
-        return math.sqrt(num)
-    print(sqrt_number(144))
-    ```
 
+    def calculate_factorial(n):
+        try:
+            if not isinstance(n, int) or n < 0:
+                raise ValueError("Input must be a non-negative integer.")
+            return math.gamma(n + 1)  # math.factorial() can overflow for large inputs, using gamma function instead
+        except OverflowError as e:
+            print(f"Overflow Error. Input value is too large.")
+            return None
+        except Exception as e:
+            print(f"An error occurred")
+            return None
+
+    input_number = 10
+    result = calculate_factorial(input_number)
+    if result is not None:
+        print(result)
+    ```
     Now, generate Python code based on the task below.
     
     Task: {task}
+    OUTPUT: 
     """,
     input_variables=["task"],
 )
@@ -91,24 +107,43 @@ code_review_prompt_template = PromptTemplate(
     Few-shot examples:
 
     Example 1:
-    Initial Request: Calculate the sum of two numbers.
+    Initial Request:
+    Generate Python code to:
+    - **Functionality**: Calculate the Factorial of a Given Number
+    - **Input**:
+        * Number: `10` (integer)
+    - **Operation**: Compute the factorial of the input number
+    - **Library/Module**: Utilize the `math` library (if applicable) or implement a custom factorial function
+    - **Output**:
+        * Data Type: Integer
+        * Format: Return the calculated factorial value
+    - **Specific Requirement**: Ensure the code handles potential overflow/errors for large input values (if applicable)
+
     Code: 
-    def add(a, b):
-        return a + b
+    import math
+
+    def calculate_factorial(n):
+        try:
+            if not isinstance(n, int) or n < 0:
+                raise ValueError("Input must be a non-negative integer.")
+            return math.gamma(n + 1)  # math.factorial() can overflow for large inputs, using gamma function instead
+        except OverflowError as e:
+            print(f"Overflow Error. Input value is too large.")
+            return None
+        except Exception as e:
+            print(f"An error occurred")
+            return None
+
+    input_number = 10
+    result = calculate_factorial(input_number)
+    if result is not None:
+        print(result)
+    
     Review:
     comment: correct
-    message: Code correctly calculates the sum of two numbers. It does not contain backticks or markdown syntax and is fully executable. It solves the initial request.
+    message: Code correctly calculates the factorial of a given number. It is fully executable, contains no non-code content (e.g., backticks, markdown syntax), and effectively handles potential overflow/errors for large input values by utilizing the math.gamma function as a suitable alternative to math.factorial(). The code adheres to all specified requirements: it uses the math library, computes the factorial of the input number (10), returns the result as an integer, and gracefully manages exceptions.
 
     Example 2:
-    Initial Request: Multiply two numbers.
-    Code:
-    def multiply(a, b):
-    return a * b  # IndentationError: expected an indented block
-    Review:
-    comment: incorrect
-    message: Syntax Error: IndentationError on line 2, expected an indented block.
-
-    Example 3:
     Initial Request: Divide two numbers.
     Code: 
     ```python
@@ -119,7 +154,7 @@ code_review_prompt_template = PromptTemplate(
     comment: incorrect
     message: Non-code content detected: backticks and markdown-style formatting are not allowed.
 
-    Example 4:
+    Example 3:
     Initial Request: Calculate the factorial of a number.
     Code:
     def add(a, b):
