@@ -52,3 +52,5 @@ __pycache__
 *.pyc
 *pytest_cache/
 *.rej
+
+test_results.json
