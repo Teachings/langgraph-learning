@@ -3,11 +3,12 @@ from langchain_core.messages import AIMessage
 from langchain_core.tools import tool
 from langchain_experimental.llms.ollama_functions import OllamaFunctions
 from langchain.prompts import PromptTemplate
+from langchain_ollama import ChatOllama
 
 # using OllamaFunctions from experimental because it supports function binding with llms
-model = OllamaFunctions(
+model = ChatOllama(
     base_url="http://ai.mtcl.lan:11436",
-    model="llama3.1:70b",
+    model="llama3.2",
     format="json"
     )
 

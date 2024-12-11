@@ -1,11 +1,11 @@
 from langchain_core.prompts import PromptTemplate
-from langchain_core.pydantic_v1 import BaseModel, Field
-from langchain_experimental.llms.ollama_functions import OllamaFunctions
+from pydantic import BaseModel, Field
+from langchain_ollama import ChatOllama
 
 # Chain
-model = OllamaFunctions(
+model = ChatOllama(
     base_url="http://ai:11436",
-    model="llama3.1:70b", 
+    model="llama3.2", 
     format="json", 
     temperature=0
     )

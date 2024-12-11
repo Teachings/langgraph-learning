@@ -2,18 +2,18 @@ from langchain_core.messages import AIMessage
 from langgraph.graph import END, StateGraph
 from typing import TypedDict
 from langchain_core.tools import tool
-from langchain_experimental.llms.ollama_functions import OllamaFunctions
-from langchain_core.pydantic_v1 import BaseModel, Field
-from langchain.prompts import PromptTemplate
+from langchain_ollama import ChatOllama
+from pydantic import BaseModel, Field
+from langchain.prompts import PromptTemplate, ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
 from termcolor import colored
 import json
 # Import tools from tools.py
 from tools import get_current_weather, get_system_time
 
 # using OllamaFunctions from experimental because it supports function binding with llms
-model = OllamaFunctions(
+model = ChatOllama(
     base_url="http://ai.mtcl.lan:11436",
-    model="llama3.1:70b", #llama3.1:70b gemma2:27b-instruct-q8_0
+    model="qwen2.5-coder:32b", # qwen2.5-coder:32b llama3.1:70b gemma2:27b-instruct-q8_0
     format="json"
     )
 
@@ -26,26 +26,28 @@ tool_mapping = {
     'get_system_time': get_system_time,
 }
 
-# Define Agent Prompt template for llama3
-agent_request_generator_prompt = PromptTemplate(
-    template=
-    """
-    <|begin_of_text|>
-    <|start_header_id|>system<|end_header_id|>
-        You are a Smart Agent. 
-        You are a master at understanding what a customer wants.
-        You evaluate every request and utilize available tools if you have to.
-    <|eot_id|>
-    <|start_header_id|>user<|end_header_id|>
-    Conduct a comprehensive analysis of the request provided\
-
-    USER REQUEST:\n\n {initial_request} \n\n
-
-    <|eot_id|>
-    <|start_header_id|>assistant<|end_header_id|>
-    """,
-    input_variables=["initial_request"],
+# Define the system message
+system_message = SystemMessagePromptTemplate.from_template(
+    "You are an intelligent assistant designed to analyze user requests accurately. "
+    "You must:"
+    "- Always analyze the user's request to understand its intent."
+    "- Only use available tools when the request explicitly requires external information or actions you cannot perform directly."
+    "- Avoid using tools for general questions or tasks you can handle without external assistance (e.g., answering general knowledge questions, casual conversations, or creative requests)."
+    "- When using a tool, ensure it is relevant to the request and provide the necessary arguments accurately."
+    "- Do not invoke a tool if it is not listed in your available tools."
+    "- Your available tools are:"
+    "  - `get_current_weather`: Provides the current weather information for a specified location."
+    "  - `get_system_time`: Provides the current system time."
+    "- If no tools are needed or the requested tool is unavailable, respond directly to the user's request without invoking any tools."
 )
+
+user_message = HumanMessagePromptTemplate.from_template(
+    "Conduct a comprehensive analysis of the request provided."
+    "USER REQUEST:{initial_request}"
+)
+
+# Define Agent Prompt template for llama3
+agent_request_generator_prompt = ChatPromptTemplate.from_messages([system_message, user_message])
 
 agent_request_generator = agent_request_generator_prompt | model_with_tools
 # result = agent_request_generator.invoke({"initial_request": "What is the weather in woodbury in MN?"})
@@ -56,33 +58,39 @@ agent_request_generator = agent_request_generator_prompt | model_with_tools
 class Evaluation(BaseModel):
     result: bool = Field(description="True or False", required=True)
 
-# Prompt template llama3
-category_generator_prompt = PromptTemplate(
-    template=
-    """
-    <|begin_of_text|>
-    <|start_header_id|>system<|end_header_id|>
-        You are a Smart Router Agent. You are a master at reviewing whether the original question that customer asked was answered in the tool response.
-        You understand the context and question below and return your answer in JSON.
-    <|eot_id|>
-    <|start_header_id|>user<|end_header_id|>
-    CONTEXT: Conduct a comprehensive analysis of the Initial Request from user and Tool Response and route the request into boolean true or false:
-        True - used when INITIAL REQUEST appears to be answered by TOOL RESPONSE. \
-        False - used when INITIAL REQUEST is not answered by TOOL RESPONSE or when TOOL RESPONSE is empty \
 
-            Output either True or False \
-            eg:
-            'True' \n\n
-    INITIAL REQUEST:\n\n {research_question} \n\n
-    TOOL RESPONSE:\n\n {tool_response} \n\n
-
-    JSON:
-    <|eot_id|>
-    <|start_header_id|>assistant<|end_header_id|>
-    """,
- input_variables=["research_question", "tool_response"],
+category_system_message = SystemMessagePromptTemplate.from_template(
+    "You are an intelligent assistant designed to analyze user requests accurately. "
+    "You must:"
+    "- Always analyze the user's request to understand its intent."
+    "- Only use available tools when the request explicitly requires external information or actions you cannot perform directly."
+    "- Avoid using tools for general questions or tasks you can handle without external assistance (e.g., answering general knowledge questions, casual conversations, or creative requests)."
+    "- When using a tool, ensure it is relevant to the request and provide the necessary arguments accurately."
+    "- Do not invoke a tool if it is not listed in your available tools."
+    "- Your available tools are:"
+    "  - `get_current_weather`: Provides the current weather information for a specified location."
+    "  - `get_system_time`: Provides the current system time."
+    "- If no tools are needed or the requested tool is unavailable, respond directly to the user's request without invoking any tools."
+)
+category_system_message = SystemMessagePromptTemplate.from_template(
+    "You are a Smart Router Agent. "
+    "You are a master at reviewing whether the original question that customer asked was answered in the tool response. "
+    "You understand the context and question below and return your answer in JSON."
 )
 
+category_user_message = HumanMessagePromptTemplate.from_template(
+    "CONTEXT: Conduct a comprehensive analysis of the Initial Request from user and Tool Response and route the request into boolean true or false: "
+    "    True - used when INITIAL REQUEST appears to be answered by TOOL RESPONSE. "
+    "    False - used when INITIAL REQUEST is not answered by TOOL RESPONSE or when TOOL RESPONSE is empty. "
+    "        Output either True or False "
+    "        eg: "
+    "        'True' "
+    " INITIAL REQUEST: {research_question}"
+    " TOOL RESPONSE:{tool_response}"
+)
+
+# Define Agent Prompt template
+category_generator_prompt = ChatPromptTemplate.from_messages([category_system_message, category_user_message])
 structured_llm = model.with_structured_output(Evaluation)
 category_generator = category_generator_prompt | structured_llm
 

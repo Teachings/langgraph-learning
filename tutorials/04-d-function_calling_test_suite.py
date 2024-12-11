@@ -1,14 +1,13 @@
 from langchain_core.messages import AIMessage
 from langchain_core.tools import tool
-from langchain_experimental.llms.ollama_functions import OllamaFunctions
+from langchain_ollama import ChatOllama
 from langchain.prompts import PromptTemplate
 import random
 
 # Import tools from tools.py
 from tools import get_current_weather, get_system_time
 
-# using OllamaFunctions from experimental because it supports function binding with llms
-model = OllamaFunctions(
+model = ChatOllama(
     base_url="http://ai.mtcl.lan:11436",
     model="llama3.1:70b", #mistral-nemo:12b-instruct-2407-q8_0 #dolphin-mixtral:8x22b #llama3.1:8b-instruct-q8_0
     format="json"
