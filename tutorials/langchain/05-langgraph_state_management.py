@@ -4,16 +4,15 @@ from typing import TypedDict
 from langchain_core.tools import tool
 from langchain_ollama import ChatOllama
 from pydantic import BaseModel, Field
-from langchain.prompts import PromptTemplate, ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
+from langchain.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
 from termcolor import colored
-import json
 # Import tools from tools.py
 from tools import get_current_weather, get_system_time
 
 # using OllamaFunctions from experimental because it supports function binding with llms
 model = ChatOllama(
     base_url="http://ai.mtcl.lan:11436",
-    model="qwen2.5-coder:32b", # qwen2.5-coder:32b llama3.1:70b gemma2:27b-instruct-q8_0
+    model="nemotron", # qwen2.5-coder:32b llama3.1:70b gemma2:27b-instruct-q8_0
     format="json"
     )
 
@@ -28,29 +27,41 @@ tool_mapping = {
 
 # Define the system message
 system_message = SystemMessagePromptTemplate.from_template(
-    "You are an intelligent assistant designed to analyze user requests accurately. "
-    "You must:"
-    "- Always analyze the user's request to understand its intent."
-    "- Only use available tools when the request explicitly requires external information or actions you cannot perform directly."
-    "- Avoid using tools for general questions or tasks you can handle without external assistance (e.g., answering general knowledge questions, casual conversations, or creative requests)."
-    "- When using a tool, ensure it is relevant to the request and provide the necessary arguments accurately."
-    "- Do not invoke a tool if it is not listed in your available tools."
-    "- Your available tools are:"
-    "  - `get_current_weather`: Provides the current weather information for a specified location."
-    "  - `get_system_time`: Provides the current system time."
-    "- If no tools are needed or the requested tool is unavailable, respond directly to the user's request without invoking any tools."
+    """
+    You are a knowledgeable and helpful AI assistant. Always strive to provide the best possible response to user requests. If a request requires information or actions beyond your current capabilities, utilize the available tools to fulfill the user's needs. 
+
+    **Available Tools:**
+    - `get_current_weather`: Provides current weather information for a specified location.
+    - `get_system_time`: Provides the current system time.
+
+    **Examples:**
+
+    **Tool-Based Requests:**
+    * **User Request:** "What's the weather like in Tokyo right now?"
+    * **Your Response:** Invoke the `get_current_weather` tool with the argument "Tokyo" .
+
+    **Generic Questions:**
+    * **User Request:** "Tell me a joke."
+    * **Your Response:** Provide a humorous response directly, without invoking any tools.
+    * **User Request:** "What is the meaning of life?"
+    * **Your Response:** Provide a thoughtful and informative response, drawing on philosophical and existential concepts.
+
+    Remember to use tools judiciously and only when necessary. If a request can be answered directly, do so without invoking any tools.
+    """
 )
 
 user_message = HumanMessagePromptTemplate.from_template(
-    "Conduct a comprehensive analysis of the request provided."
-    "USER REQUEST:{initial_request}"
+    """
+    Conduct a comprehensive analysis of the request provided.
+    USER REQUEST:{initial_request}
+    """
 )
 
 # Define Agent Prompt template for llama3
 agent_request_generator_prompt = ChatPromptTemplate.from_messages([system_message, user_message])
 
 agent_request_generator = agent_request_generator_prompt | model_with_tools
-# result = agent_request_generator.invoke({"initial_request": "What is the weather in woodbury in MN?"})
+# result = agent_request_generator.invoke({"initial_request": "What is the system time?"})
 # print(result)
 # input("...")
 
@@ -58,35 +69,41 @@ agent_request_generator = agent_request_generator_prompt | model_with_tools
 class Evaluation(BaseModel):
     result: bool = Field(description="True or False", required=True)
 
-
 category_system_message = SystemMessagePromptTemplate.from_template(
-    "You are an intelligent assistant designed to analyze user requests accurately. "
-    "You must:"
-    "- Always analyze the user's request to understand its intent."
-    "- Only use available tools when the request explicitly requires external information or actions you cannot perform directly."
-    "- Avoid using tools for general questions or tasks you can handle without external assistance (e.g., answering general knowledge questions, casual conversations, or creative requests)."
-    "- When using a tool, ensure it is relevant to the request and provide the necessary arguments accurately."
-    "- Do not invoke a tool if it is not listed in your available tools."
-    "- Your available tools are:"
-    "  - `get_current_weather`: Provides the current weather information for a specified location."
-    "  - `get_system_time`: Provides the current system time."
-    "- If no tools are needed or the requested tool is unavailable, respond directly to the user's request without invoking any tools."
-)
-category_system_message = SystemMessagePromptTemplate.from_template(
-    "You are a Smart Router Agent. "
-    "You are a master at reviewing whether the original question that customer asked was answered in the tool response. "
-    "You understand the context and question below and return your answer in JSON."
-)
+    """
+    You are a skilled evaluator. Your task is to assess whether the provided tool response adequately addresses the initial user query. 
 
+    **Consider the following:**
+    * **Relevance:** Does the response directly answer the core question?
+    * **Comprehensiveness:** Does the response provide a complete and thorough answer?
+    * **Accuracy:** Is the information in the response correct and up-to-date?
+    * **Clarity:** Is the response easy to understand and free of ambiguity?
+    * **Conciseness:** Is the response concise and to the point?
+
+    **Provide an evaluation, including:**
+    * A clear **boolean result** (True/False) indicating whether the response is adequate.
+
+    **Examples:**
+
+    **Example 1:**
+    * **INITIAL REQUEST:** "What is the capital of France?"
+    * **Tool Response:** "Paris is the capital of France."
+    * **Your Evaluation:**
+        * **TOOL RESPONSE:** True
+
+    **Example 2:**
+    * **INITIAL REQUEST:** "Explain quantum computing in simple terms."
+    * **Tool Response:** "Quantum computing is a type of computation that harnesses the collective properties of quantum states, such as superposition and entanglement, to perform calculations."
+    * **Your Evaluation:**
+        * **TOOL RESPONSE:** False
+    """
+)
 category_user_message = HumanMessagePromptTemplate.from_template(
-    "CONTEXT: Conduct a comprehensive analysis of the Initial Request from user and Tool Response and route the request into boolean true or false: "
-    "    True - used when INITIAL REQUEST appears to be answered by TOOL RESPONSE. "
-    "    False - used when INITIAL REQUEST is not answered by TOOL RESPONSE or when TOOL RESPONSE is empty. "
-    "        Output either True or False "
-    "        eg: "
-    "        'True' "
-    " INITIAL REQUEST: {research_question}"
-    " TOOL RESPONSE:{tool_response}"
+    """
+    CONTEXT: Conduct a comprehensive analysis of the Initial Request from user and Tool Response and route the request into boolean true or false: 
+    INITIAL REQUEST: {research_question}
+    TOOL RESPONSE:{tool_response}
+    """
 )
 
 # Define Agent Prompt template
