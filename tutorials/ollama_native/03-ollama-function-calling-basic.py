@@ -20,11 +20,6 @@ tool_functions = {
 # Client Initialization
 client = Client(host=API_URL)
 
-# Pydantic Schema for Response Evaluation
-class Evaluation(BaseModel):
-    result: bool = Field(description="True or False", required=True)
-    explanation: str = Field(description="Explanation of the evaluation result.", required=True)
-
 def process_request_with_tools(initial_request):
     """Process a user request and return the AI's response."""
     system_message = """
