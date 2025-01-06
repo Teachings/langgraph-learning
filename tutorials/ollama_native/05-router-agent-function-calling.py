@@ -5,7 +5,7 @@ from ollama import Client
 from tools import get_current_weather, get_system_time
 
 # Configuration: API Endpoint
-API_URL = "http://ai.mtcl.lan:11434"
+API_URL = "http://localhost:11434"
 
 # Tools and Tool Functions
 TOOLS = {

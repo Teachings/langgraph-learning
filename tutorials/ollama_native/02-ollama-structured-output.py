@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 from termcolor import colored
 
 # Configuration: API Endpoint and Ollama Client
-API_URL = "http://ai.mtcl.lan:11434"
+API_URL = "http://localhost:11434"
 client = Client(host=API_URL)
 
 class TemperatureTone(str, Enum):

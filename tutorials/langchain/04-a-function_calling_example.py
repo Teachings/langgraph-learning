@@ -7,7 +7,7 @@ from langchain_ollama import ChatOllama
 
 # using OllamaFunctions from experimental because it supports function binding with llms
 model = ChatOllama(
-    base_url="http://ai.mtcl.lan:11436",
+    base_url="http://localhost:11434",
     model="llama3.2",
     format="json"
     )
